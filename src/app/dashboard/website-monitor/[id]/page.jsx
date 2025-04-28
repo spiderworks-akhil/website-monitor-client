@@ -8,6 +8,7 @@ import {
   FiClock,
   FiActivity,
   FiAlertCircle,
+  FiTrash2,
 } from "react-icons/fi";
 import { BASE_URL } from "@/services/baseUrl";
 
@@ -16,6 +17,8 @@ const WebsiteDetails = ({ params }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timeRange, setTimeRange] = useState("24h");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeletePopover, setShowDeletePopover] = useState(false);
   const unwrappedParams = use(params);
 
   const fetchWebsite = async () => {
@@ -34,6 +37,37 @@ const WebsiteDetails = ({ params }) => {
     }
   };
 
+  const handleDeleteClick = () => {
+    setShowDeletePopover(true);
+  };
+
+  const deleteStatusHistory = async () => {
+    try {
+      setIsDeleting(true);
+      const res = await fetch(
+        `${BASE_URL}/api/websites/website-details/${unwrappedParams.id}/status-history`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to delete status history");
+
+      setWebsite((prev) => ({
+        ...prev,
+        statusHistory: [],
+        uptimePercentage: 0,
+        slowResponses: 0,
+        downtimeCount: 0,
+      }));
+    } catch (err) {
+      setError("Failed to delete status history: " + err.message);
+    } finally {
+      setIsDeleting(false);
+      setShowDeletePopover(false);
+    }
+  };
+
   useEffect(() => {
     fetchWebsite();
   }, [unwrappedParams.id, timeRange]);
@@ -41,7 +75,7 @@ const WebsiteDetails = ({ params }) => {
   if (loading)
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
       </div>
     );
 
@@ -95,7 +129,6 @@ const WebsiteDetails = ({ params }) => {
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <Link
@@ -140,7 +173,6 @@ const WebsiteDetails = ({ params }) => {
           </div>
         </div>
 
-        {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
@@ -241,10 +273,21 @@ const WebsiteDetails = ({ params }) => {
           </div>
         </div>
 
-        {/* Recent Checks Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-5 border-b border-gray-100">
+          <div className="p-5 border-b border-gray-100 flex justify-between items-center">
             <h2 className="text-lg font-semibold">Status Checks</h2>
+            <button
+              onClick={handleDeleteClick}
+              disabled={isDeleting || !website.statusHistory?.length}
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition ${
+                isDeleting || !website.statusHistory?.length
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-red-600 text-white hover:bg-red-700"
+              }`}
+            >
+              <FiTrash2 />
+              {isDeleting ? "Deleting..." : "Delete Status History"}
+            </button>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -259,33 +302,77 @@ const WebsiteDetails = ({ params }) => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {website.statusHistory?.map((check) => (
-                  <tr key={check.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {new Date(check.check_time).toLocaleString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          check.status === "Success"
-                            ? "bg-green-100 text-green-800"
-                            : check.status === "Slow"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {check.status}
-                      </span>
+                {website.statusHistory?.length ? (
+                  website.statusHistory.map((check) => (
+                    <tr key={check.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {new Date(check.check_time).toLocaleString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            check.status === "Success"
+                              ? "bg-green-100 text-green-800"
+                              : check.status === "Slow"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {check.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className="px-6 py-4 text-center text-gray-500"
+                    >
+                      No status history available
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
+
+      {showDeletePopover && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Confirm Deletion
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to delete the entire status history for this
+              website? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeletePopover(false)}
+                className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteStatusHistory}
+                disabled={isDeleting}
+                className={`px-4 py-2 text-sm text-white rounded-md transition ${
+                  isDeleting
+                    ? "bg-red-400 cursor-not-allowed"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .circular-chart {
