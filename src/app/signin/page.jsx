@@ -67,7 +67,9 @@ export default function SignIn() {
 
       setUser(result.user);
 
-      router.push("/dashboard");
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 500);
     } catch (error) {
       setMessage({
         text: error.message || "Sign in failed. Please try again.",
