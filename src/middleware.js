@@ -13,11 +13,16 @@ export async function middleware(request) {
   }
 
   if (!token) {
+    console.log("yes inside",token);
+    
     return NextResponse.redirect(new URL("/signin", request.url));
   }
 
   try {
     await jwtVerify(token, new TextEncoder().encode(process.env.JWT_SECRET));
+
+    console.log("yes");
+    
 
     return NextResponse.next();
   } catch (error) {
