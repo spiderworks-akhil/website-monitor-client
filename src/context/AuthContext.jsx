@@ -9,7 +9,13 @@ const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    if (typeof window !== "undefined") {
+      const storedUser = localStorage.getItem("user");
+      return storedUser ? JSON.parse(storedUser) : null;
+    }
+    return null;
+  });
   const router = useRouter();
 
   const validateSession = async () => {
@@ -22,8 +28,11 @@ export const AuthProvider = ({ children }) => {
 
       const data = await res.json();
       setUser(data.user);
+
+      localStorage.setItem("user", JSON.stringify(data.user));
     } catch (err) {
       setUser(null);
+      localStorage.removeItem("user");
       router.push("/signin");
     }
   };
@@ -37,6 +46,14 @@ export const AuthProvider = ({ children }) => {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem("user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("user");
+    }
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, setUser }}>
