@@ -10,6 +10,7 @@ export default function WebMonitor() {
   const [searchName, setSearchName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [urlError, setUrlError] = useState("");
   const today = new Date().toISOString().split("T")[0];
   const router = useRouter();
 
@@ -28,13 +29,26 @@ export default function WebMonitor() {
 
   const addWebsite = async (e) => {
     e.preventDefault();
-    await fetch(`${BASE_URL}/api/websites/add-website`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    setForm({ site_name: "", url: "" });
-    fetchWebsites();
+    setUrlError("");
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/websites/add-website`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        setUrlError(errorData.error || "Failed to add website");
+        return;
+      }
+
+      setForm({ site_name: "", url: "" });
+      fetchWebsites();
+    } catch (error) {
+      setUrlError("An error occurred while adding the website");
+    }
   };
 
   const runCheck = async () => {
@@ -63,6 +77,15 @@ export default function WebMonitor() {
     }, 300);
     return () => clearTimeout(delayDebounce);
   }, [searchName, startDate, endDate]);
+
+  useEffect(() => {
+    if (urlError) {
+      const timer = setTimeout(() => {
+        setUrlError("");
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [urlError]);
 
   const groupStatusByDay = (statusHistory) => {
     const grouped = {};
@@ -168,15 +191,13 @@ export default function WebMonitor() {
               value={form.site_name}
               onChange={(e) => setForm({ ...form, site_name: e.target.value })}
               className="flex-1 p-3 border rounded"
-              required
             />
             <input
-              type="url"
+              type="text"
               placeholder="https://example.com"
               value={form.url}
               onChange={(e) => setForm({ ...form, url: e.target.value })}
               className="flex-1 p-3 border rounded"
-              required
             />
             <button
               type="submit"
@@ -185,6 +206,26 @@ export default function WebMonitor() {
               + Add Website
             </button>
           </form>
+
+          {urlError && (
+            <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md shadow-sm flex items-center gap-2 animate-fade-in">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span className="font-semibold">{urlError}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-4 mb-4 flex-wrap">

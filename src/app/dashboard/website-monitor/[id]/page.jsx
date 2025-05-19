@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   FiArrowLeft,
   FiExternalLink,
@@ -19,7 +20,10 @@ const WebsiteDetails = ({ params }) => {
   const [timeRange, setTimeRange] = useState("24h");
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeletePopover, setShowDeletePopover] = useState(false);
+  const [showWebsiteDeleteModal, setShowWebsiteDeleteModal] = useState(false);
+  const [isDeletingWebsite, setIsDeletingWebsite] = useState(false);
   const unwrappedParams = use(params);
+  const router = useRouter();
 
   const fetchWebsite = async () => {
     try {
@@ -39,6 +43,10 @@ const WebsiteDetails = ({ params }) => {
 
   const handleDeleteClick = () => {
     setShowDeletePopover(true);
+  };
+
+  const handleWebsiteDeleteClick = () => {
+    setShowWebsiteDeleteModal(true);
   };
 
   const deleteStatusHistory = async () => {
@@ -65,6 +73,27 @@ const WebsiteDetails = ({ params }) => {
     } finally {
       setIsDeleting(false);
       setShowDeletePopover(false);
+    }
+  };
+
+  const deleteWebsite = async () => {
+    try {
+      setIsDeletingWebsite(true);
+      const res = await fetch(
+        `${BASE_URL}/api/websites/website-delete/${unwrappedParams.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to delete website");
+
+      router.push("/dashboard/website-monitor");
+    } catch (err) {
+      setError("Failed to delete website: " + err.message);
+    } finally {
+      setIsDeletingWebsite(false);
+      setShowWebsiteDeleteModal(false);
     }
   };
 
@@ -276,18 +305,32 @@ const WebsiteDetails = ({ params }) => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex justify-between items-center">
             <h2 className="text-lg font-semibold">Status Checks</h2>
-            <button
-              onClick={handleDeleteClick}
-              disabled={isDeleting || !website.statusHistory?.length}
-              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition ${
-                isDeleting || !website.statusHistory?.length
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-red-600 text-white hover:bg-red-700"
-              }`}
-            >
-              <FiTrash2 />
-              {isDeleting ? "Deleting..." : "Delete Status History"}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDeleteClick}
+                disabled={isDeleting || !website.statusHistory?.length}
+                className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition ${
+                  isDeleting || !website.statusHistory?.length
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-red-600 text-white hover:bg-red-700"
+                }`}
+              >
+                <FiTrash2 />
+                {isDeleting ? "Deleting..." : "Delete Status History"}
+              </button>
+              <button
+                onClick={handleWebsiteDeleteClick}
+                disabled={isDeletingWebsite}
+                className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition ${
+                  isDeletingWebsite
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-red-600 text-white hover:bg-red-700"
+                }`}
+              >
+                <FiTrash2 />
+                {isDeletingWebsite ? "Deleting..." : "Delete Website"}
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -345,7 +388,7 @@ const WebsiteDetails = ({ params }) => {
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Confirm Deletion
+              Confirm Website Status Deletion
             </h3>
             <p className="text-sm text-gray-600 mb-6">
               Are you sure you want to delete the entire status history for this
@@ -368,6 +411,39 @@ const WebsiteDetails = ({ params }) => {
                 }`}
               >
                 {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWebsiteDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Confirm Website Deletion
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to delete this website? This action cannot
+              be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowWebsiteDeleteModal(false)}
+                className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteWebsite}
+                disabled={isDeletingWebsite}
+                className={`px-4 py-2 text-sm text-white rounded-md transition ${
+                  isDeletingWebsite
+                    ? "bg-red-400 cursor-not-allowed"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                {isDeletingWebsite ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
