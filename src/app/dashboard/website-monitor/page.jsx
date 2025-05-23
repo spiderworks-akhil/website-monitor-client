@@ -28,7 +28,7 @@ export default function WebMonitor() {
       }
     );
     const data = await res.json();
-    setWebsites(data);
+    setWebsites(Array.isArray(data) ? data : []);
   };
 
   const addWebsite = async (e) => {
