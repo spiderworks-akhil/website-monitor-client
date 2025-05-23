@@ -21,7 +21,11 @@ export default function WebMonitor() {
     if (endDate) params.append("endDate", endDate);
     params.append("includeToday", "true");
     const res = await fetch(
-      `${BASE_URL}/api/websites/get-websites?${params.toString()}`
+      `${BASE_URL}/api/websites/get-websites?${params.toString()}`,
+      {
+        method: "GET",
+        credentials: "include",
+      }
     );
     const data = await res.json();
     setWebsites(data);
@@ -35,6 +39,7 @@ export default function WebMonitor() {
       const res = await fetch(`${BASE_URL}/api/websites/add-website`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(form),
       });
 

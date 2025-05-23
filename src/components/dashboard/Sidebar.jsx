@@ -5,11 +5,9 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/dashboard", label: "Home" },
-  { href: "/dashboard/profile", label: "Profile" },
   { href: "/dashboard/settings", label: "Settings" },
   { href: "/dashboard/website-monitor", label: "Website Monitor" },
   { href: "/dashboard/user-profile", label: "User Profile" },
-  { href: "/dashboard/manage-user", label: "Manage User" },
 ];
 
 const Sidebar = () => {

@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { IoLogOut } from "react-icons/io5";
 import { BASE_URL } from "@/services/baseUrl";
+import Image from "next/image";
 
 const Header = () => {
   const { user, setUser } = useAuth();
@@ -25,7 +26,17 @@ const Header = () => {
 
   return (
     <header className="h-16 bg-gray-900 shadow-sm flex items-center justify-between px-8 border-b border-b-gray-600">
-      <h1 className="font-bold text-2xl text-gray-100">Dashboard</h1>
+      <div className="flex items-center gap-3">
+        <Image
+          src="/website-monitor-logo.png" // Update with your logo path
+          alt="Logo"
+          width={36}
+          height={36}
+          className="rounded"
+          priority
+        />
+        <h1 className="font-bold text-2xl text-gray-100">Website Monitor</h1>
+      </div>
       <div className="flex gap-4 items-center">
         {user && (
           <>
