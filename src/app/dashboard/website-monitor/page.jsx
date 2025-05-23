@@ -23,7 +23,6 @@ export default function WebMonitor() {
     const res = await fetch(
       `${BASE_URL}/api/websites/get-websites?${params.toString()}`,
       {
-        method: "GET",
         credentials: "include",
       }
     );
