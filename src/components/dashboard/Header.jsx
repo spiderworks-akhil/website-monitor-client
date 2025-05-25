@@ -28,7 +28,7 @@ const Header = () => {
     <header className="h-16 bg-gray-900 shadow-sm flex items-center justify-between px-8 border-b border-b-gray-600">
       <div className="flex items-center gap-3">
         <Image
-          src="/wmt-logo.png"
+          src="/wmt-logo-1.png"
           alt="Logo"
           width={36}
           height={36}
