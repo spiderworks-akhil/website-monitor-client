@@ -17,7 +17,10 @@ export default function Settings() {
   useEffect(() => {
     const fetchFrequency = async () => {
       try {
-        const res = await fetch(`${BASE_URL}/api/cron/frequency`);
+        const res = await fetch(`${BASE_URL}/api/cron/user-frequency`, {
+          method: "GET",
+          credentials: "include",
+        });
         const data = await res.json();
         if (res.ok) {
           setFrequency(data.frequency.toString());
@@ -32,9 +35,10 @@ export default function Settings() {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${BASE_URL}/api/cron/update-frequency`, {
+      const res = await fetch(`${BASE_URL}/api/cron/update-user-frequency`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ frequency: parseInt(frequency) }),
       });
       const data = await res.json();
