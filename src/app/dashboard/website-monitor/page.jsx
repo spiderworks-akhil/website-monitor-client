@@ -57,7 +57,10 @@ export default function WebMonitor() {
   };
 
   const runCheck = async () => {
-    await fetch(`${BASE_URL}/api/websites/check-websites`, { method: "GET" });
+    await fetch(`${BASE_URL}/api/websites/check-websites`, {
+      method: "GET",
+      credentials: "include",
+    });
     fetchWebsites();
   };
 
