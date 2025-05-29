@@ -1,11 +1,16 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
 const Dashboard = () => {
-  return (
-    <div className="">
-      <h1>Welcome to dashboard home</h1>
-    </div>
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/dashboard/website-monitor");
+  }, []);
+
+  return null;
 };
 
 export default Dashboard;
