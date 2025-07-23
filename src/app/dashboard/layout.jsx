@@ -2,34 +2,30 @@
 
 import Header from "@/components/dashboard/Header";
 import Sidebar from "@/components/dashboard/Sidebar";
-import { useAuth } from "@/context/AuthContext";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function DashboardLayout({ children }) {
-  const { user } = useAuth();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
-  const [localUser, setLocalUser] = useState(null);
 
   useEffect(() => {
     setIsClient(true);
-
-    const storedUser = localStorage.getItem("user");
-    setLocalUser(storedUser ? JSON.parse(storedUser) : null);
   }, []);
 
   useEffect(() => {
-    if (isClient && !localUser && !user) {
+    if (isClient && status !== "loading" && !session) {
       router.push("/signin");
     }
-  }, [isClient, localUser, user, router]);
+  }, [isClient, status, session, router]);
 
-  if (!isClient) {
+  if (!isClient || status === "loading") {
     return null;
   }
 
-  if (!user && !localUser) {
+  if (!session) {
     return null;
   }
 

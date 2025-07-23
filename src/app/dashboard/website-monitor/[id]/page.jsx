@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   FiArrowLeft,
   FiExternalLink,
@@ -24,12 +25,20 @@ const WebsiteDetails = ({ params }) => {
   const [isDeletingWebsite, setIsDeletingWebsite] = useState(false);
   const unwrappedParams = use(params);
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   const fetchWebsite = async () => {
     try {
       setLoading(true);
       const res = await fetch(
-        `${BASE_URL}/api/websites/website-details/${unwrappedParams.id}?range=${timeRange}`
+        `${BASE_URL}/api/websites/website-details/${unwrappedParams.id}?range=${timeRange}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+          credentials: "include",
+        }
       );
       if (!res.ok) throw new Error("Failed to fetch website");
       const data = await res.json();
@@ -56,6 +65,10 @@ const WebsiteDetails = ({ params }) => {
         `${BASE_URL}/api/websites/website-details/${unwrappedParams.id}/status-history`,
         {
           method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+          credentials: "include",
         }
       );
 
@@ -83,6 +96,10 @@ const WebsiteDetails = ({ params }) => {
         `${BASE_URL}/api/websites/website-delete/${unwrappedParams.id}`,
         {
           method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+          credentials: "include",
         }
       );
 

@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { BASE_URL } from "@/services/baseUrl";
 
 export default function Settings() {
   const [frequency, setFrequency] = useState("1");
   const [message, setMessage] = useState("");
+  const { data: session, status } = useSession();
   const frequencies = [
     { label: "Every 1 minute", value: "1" },
     { label: "Every 5 minutes", value: "5" },
@@ -19,6 +21,9 @@ export default function Settings() {
       try {
         const res = await fetch(`${BASE_URL}/api/cron/user-frequency`, {
           method: "GET",
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
           credentials: "include",
         });
         const data = await res.json();
@@ -37,7 +42,10 @@ export default function Settings() {
     try {
       const res = await fetch(`${BASE_URL}/api/cron/update-user-frequency`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.accessToken}`,
+        },
         credentials: "include",
         body: JSON.stringify({ frequency: parseInt(frequency) }),
       });

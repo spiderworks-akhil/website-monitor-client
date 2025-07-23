@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { BASE_URL } from "@/services/baseUrl";
 
 export default function WebMonitor() {
@@ -13,6 +14,7 @@ export default function WebMonitor() {
   const [urlError, setUrlError] = useState("");
   const today = new Date().toISOString().split("T")[0];
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   const fetchWebsites = async () => {
     const params = new URLSearchParams();
@@ -24,6 +26,9 @@ export default function WebMonitor() {
       `${BASE_URL}/api/websites/get-websites?${params.toString()}`,
       {
         method: "GET",
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+        },
         credentials: "include",
       }
     );
@@ -38,7 +43,10 @@ export default function WebMonitor() {
     try {
       const res = await fetch(`${BASE_URL}/api/websites/add-website`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.accessToken}`,
+        },
         credentials: "include",
         body: JSON.stringify(form),
       });
@@ -59,6 +67,9 @@ export default function WebMonitor() {
   const runCheck = async () => {
     await fetch(`${BASE_URL}/api/websites/check-websites`, {
       method: "GET",
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
       credentials: "include",
     });
     fetchWebsites();

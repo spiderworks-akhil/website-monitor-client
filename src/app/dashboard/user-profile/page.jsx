@@ -1,11 +1,10 @@
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import {
   FiUser,
   FiMail,
-  FiLock,
   FiSave,
   FiLoader,
   FiCheckCircle,
@@ -14,29 +13,61 @@ import {
 import { BASE_URL } from "@/services/baseUrl";
 
 const UserProfile = () => {
-  const { user, setUser } = useAuth();
+  const { data: session } = useSession();
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    password: "",
-    confirmPassword: "",
   });
+  const [userDetails, setUserDetails] = useState(null);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("profile");
   const [status, setStatus] = useState({ type: null, message: null });
 
   useEffect(() => {
-    if (user) {
+    if (session?.user) {
       setFormData({
-        name: user.name || "",
-        email: user.email || "",
-        password: "",
-        confirmPassword: "",
+        name: session.user.name || "",
+        email: session.user.email || "",
       });
     }
-  }, [user]);
+  }, [session]);
+
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      if (!session?.accessToken) return;
+
+      try {
+        const response = await fetch(`${BASE_URL}/api/auth/current-user`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+          credentials: "include",
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setUserDetails(data.user);
+          setFormData({
+            name: data.user.name || "",
+            email: data.user.email || "",
+          });
+        } else {
+          setStatus({
+            type: "error",
+            message: data.message || "Failed to fetch user details",
+          });
+        }
+      } catch (error) {
+        setStatus({
+          type: "error",
+          message: "Error fetching user details",
+        });
+      }
+    };
+
+    fetchUserDetails();
+  }, [session?.accessToken]);
 
   useEffect(() => {
     let timer;
@@ -59,14 +90,6 @@ const UserProfile = () => {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Please enter a valid email";
-    }
-
-    if (formData.password && formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
     }
 
     setErrors(newErrors);
@@ -107,11 +130,11 @@ const UserProfile = () => {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${session.accessToken}`,
         },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          password: formData.password || undefined,
         }),
       });
 
@@ -121,17 +144,11 @@ const UserProfile = () => {
         throw new Error(data.error || "Failed to update user");
       }
 
-      setUser(data.user);
+      setUserDetails(data.user);
       setStatus({
         type: "success",
         message: "Profile updated successfully!",
       });
-
-      setFormData((prev) => ({
-        ...prev,
-        password: "",
-        confirmPassword: "",
-      }));
     } catch (error) {
       setStatus({
         type: "error",
@@ -142,7 +159,7 @@ const UserProfile = () => {
     }
   };
 
-  if (!user) {
+  if (!session?.user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
@@ -158,168 +175,68 @@ const UserProfile = () => {
             Account Settings
           </h1>
           <p className="mt-2 text-sm text-gray-600">
-            Manage your profile information and security settings
+            Manage your profile information
           </p>
         </div>
 
         <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="border-b border-gray-200">
-            <nav className="flex -mb-px">
-              <button
-                onClick={() => setActiveTab("profile")}
-                className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                  activeTab === "profile"
-                    ? "border-indigo-500 text-indigo-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                Profile
-              </button>
-              <button
-                onClick={() => setActiveTab("security")}
-                className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                  activeTab === "security"
-                    ? "border-indigo-500 text-indigo-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                Security
-              </button>
-            </nav>
-          </div>
-
           <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {activeTab === "profile" && (
-                <>
-                  <div>
-                    <label
-                      htmlFor="name"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Full Name
-                    </label>
-                    <div className="relative rounded-md shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FiUser className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        className={`block w-full pl-10 pr-3 py-2 border ${
-                          errors.name ? "border-red-300" : "border-gray-300"
-                        } rounded-md focus:outline-black`}
-                        placeholder="John Doe"
-                      />
-                    </div>
-                    {errors.name && (
-                      <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-                    )}
+              <div>
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Full Name
+                </label>
+                <div className="relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <FiUser className="h-5 w-5 text-gray-400" />
                   </div>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className={`block w-full pl-10 pr-3 py-2 border ${
+                      errors.name ? "border-red-300" : "border-gray-300"
+                    } rounded-md focus:outline-black`}
+                    placeholder="John Doe"
+                  />
+                </div>
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                )}
+              </div>
 
-                  <div>
-                    <label
-                      htmlFor="email"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Email Address
-                    </label>
-                    <div className="relative rounded-md shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FiMail className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        className={`block w-full pl-10 pr-3 py-2 border ${
-                          errors.email ? "border-red-300" : "border-gray-300"
-                        } rounded-md focus:outline-black`}
-                        placeholder="you@example.com"
-                      />
-                    </div>
-                    {errors.email && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {errors.email}
-                      </p>
-                    )}
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Email Address
+                </label>
+                <div className="relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <FiMail className="h-5 w-5 text-gray-400" />
                   </div>
-                </>
-              )}
-
-              {activeTab === "security" && (
-                <>
-                  <div>
-                    <label
-                      htmlFor="password"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      New Password
-                    </label>
-                    <div className="relative rounded-md shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FiLock className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        className={`block w-full pl-10 pr-3 py-2 border ${
-                          errors.password ? "border-red-300" : "border-gray-300"
-                        } rounded-md focus:outline-black`}
-                        placeholder="Leave blank to keep current"
-                      />
-                    </div>
-                    {errors.password && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {errors.password}
-                      </p>
-                    )}
-                    <p className="mt-1 text-xs text-gray-500">
-                      Password must be at least 6 characters
-                    </p>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="confirmPassword"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Confirm New Password
-                    </label>
-                    <div className="relative rounded-md shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FiLock className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="password"
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        className={`block w-full pl-10 pr-3 py-2 border ${
-                          errors.confirmPassword
-                            ? "border-red-300"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-black`}
-                        placeholder="Confirm your new password"
-                      />
-                    </div>
-                    {errors.confirmPassword && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {errors.confirmPassword}
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={`block w-full pl-10 pr-3 py-2 border ${
+                      errors.email ? "border-red-300" : "border-gray-300"
+                    } rounded-md focus:outline-black`}
+                    placeholder="you@example.com"
+                  />
+                </div>
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                )}
+              </div>
 
               <div className="pt-4 border-t border-gray-200">
                 <div className="flex justify-end">
@@ -376,7 +293,9 @@ const UserProfile = () => {
               <div>
                 <p className="text-sm font-medium text-gray-500">Joined Date</p>
                 <p className="mt-1 text-sm text-gray-900">
-                  {new Date(user.createdAt).toLocaleDateString()}
+                  {userDetails?.createdAt
+                    ? new Date(userDetails.createdAt).toLocaleDateString()
+                    : "N/A"}
                 </p>
               </div>
               <div>
@@ -384,7 +303,27 @@ const UserProfile = () => {
                   Last Updated
                 </p>
                 <p className="mt-1 text-sm text-gray-900">
-                  {new Date(user.updatedAt).toLocaleDateString()}
+                  {userDetails?.updatedAt
+                    ? new Date(userDetails.updatedAt).toLocaleDateString()
+                    : "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Phone</p>
+                <p className="mt-1 text-sm text-gray-900">
+                  {userDetails?.phone || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Role</p>
+                <p className="mt-1 text-sm text-gray-900">
+                  {userDetails?.role || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">User Type</p>
+                <p className="mt-1 text-sm text-gray-900">
+                  {userDetails?.user_type || "N/A"}
                 </p>
               </div>
             </div>

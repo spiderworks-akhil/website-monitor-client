@@ -1,27 +1,17 @@
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { IoLogOut } from "react-icons/io5";
 import { BASE_URL } from "@/services/baseUrl";
 import Image from "next/image";
 
 const Header = () => {
-  const { user, setUser } = useAuth();
-
+  const { data: session } = useSession();
   const router = useRouter();
 
   const handleLogout = async () => {
-    try {
-      await fetch(`${BASE_URL}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-      setUser(null);
-      router.push("/signin");
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+    await signOut({ callbackUrl: "/signin" });
   };
 
   return (
@@ -38,11 +28,13 @@ const Header = () => {
         <h1 className="font-bold text-2xl text-gray-100">Website Monitor</h1>
       </div>
       <div className="flex gap-4 items-center">
-        {user && (
+        {session?.user && (
           <>
             <span className="text-gray-100 text-lg">
-              {user.name.charAt(0).toUpperCase() + user.name.slice(1)}
-            </span>{" "}
+              {session.user.name
+                ? session.user.name.charAt(0).toUpperCase() + session.user.name.slice(1)
+                : session.user.email}
+            </span>
             <button
               onClick={handleLogout}
               className="px-3 py-1 bg-red-700 hover:bg-red-800 text-white rounded-md"
