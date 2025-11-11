@@ -122,7 +122,7 @@ const SignIn = () => {
         body: JSON.stringify({
           email: data.email,
           password: data.password,
-          type: "HR",
+          // type: "HR",
         }),
       });
 
